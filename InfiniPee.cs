@@ -47,7 +47,7 @@ namespace InfiniPee
             {
                 return null!;
             }
-            string name = "Sticky.Resources." + args.Name[..args.Name.IndexOf(',')] + ".dll";
+            string name = nameof(InfiniPee) + ".Resources." + args.Name[..args.Name.IndexOf(',')] + ".dll";
 
             using Stream? str = Assembly.GetExecutingAssembly().GetManifestResourceStream(name);
             if (str is not null)
