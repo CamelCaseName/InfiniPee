@@ -1,4 +1,4 @@
-# Sticky
+# InfiniPee
 Now you have a super bladder and can pee forever, and anywhere!
 <hr>
 
