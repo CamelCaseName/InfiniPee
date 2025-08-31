@@ -2,7 +2,9 @@
 using Il2CppEekCharacterEngine;
 using Il2CppEekCharacterEngine.Components;
 using Il2CppEekEvents;
+using Il2CppEekEvents.Helper;
 using Il2CppHouseParty;
+using Il2CppInterop.Runtime;
 using Il2CppInterop.Runtime.Attributes;
 using Il2CppRootMotion.FinalIK;
 using MelonLoader;
@@ -27,8 +29,8 @@ namespace InfiniPee
         bool Peeing = false;
         internal static bool HandIK = false;
         float PeeAngle = 0;
-        InteractionObject peeInteraction = PlayerCharacter.Player.Intimacy.PeeingHandTarget.InteractionObject;
-        GameObject? masturbationTarget;
+        InteractionObject? peeInteraction;
+        InteractionObject? masturbationTarget;
 
         //Pee_Particle on the player model, same for male and femal
 
@@ -193,67 +195,20 @@ namespace InfiniPee
                         }
                     }
                     Pee.Play();
-                    PlayerCharacter.Player.OnPeeingStarted.Invoke();
                 }
                 else
                 {
-                    PlayerCharacter.Player.OnPeeingStopped.Invoke();
+                    Pee.Stop();
                 }
             }));
             PeeToggle.Set(Peeing);
 
             UIBuilder.CreateToggle(contentHolder, "Use Hand", out Toggle HandToggle, out _);
+            HandToggle.Set(HandIK);
             HandToggle.onValueChanged.AddListener(new Action<bool>((bool state) =>
             {
-                HandIK = state;
-                if (PlayerCharacter.Player is null)
-                {
-                    return;
-                }
-                if (PlayerCharacter.Player.FinalIK is null)
-                {
-                    return;
-                }
-                if (PlayerCharacter.Player.Intimacy is null)
-                {
-                    return;
-                }
-                if (PlayerCharacter.Player.Intimacy.PeeingHandTarget is null)
-                {
-                    return;
-                }
-
-                //ik doesnt work for penis
-                //lets check all delegte listeners on onpeeingstarted and onpee
-                //onpeeingstarted is only listened to by one method, onpeeingstarteddowork
-
-                //the hand posing is done from within CIntimacy.CheckPeeing......
-                //so we nuke it if we force pee and then run the IK ourselves
-
-                if (HandIK)
-                {
-                    if (peeInteraction is null || masturbationTarget is null || !masturbationTarget.active)
-                    {
-                        if (PlayerCharacter.Player.Gender == Genders.Male)
-                        {
-                            peeInteraction = PlayerCharacter.Player.Intimacy.PeeingHandTarget.InteractionObject;
-                        }
-                        else
-                        {
-                            //something called "masturbationlHand"
-                            masturbationTarget = GameObject.Find("masturbationlHand");
-                            masturbationTarget.SetActive(true);
-                            peeInteraction = masturbationTarget.GetComponent<InteractionObject>();
-                        }
-                    }
-                    PlayerCharacter.Player.FinalIK.StartObjectInteraction(peeInteraction, FullBodyBipedEffector.LeftHand, false);
-                }
-                else
-                {
-                    PlayerCharacter.Player.FinalIK.StopObjectInteraction(FullBodyBipedEffector.LeftHand);
-                }
+                SetUpOrToggleHandIK(state);
             }));
-            HandToggle.Set(HandIK);
 
             var XSliderContainer = UIBuilder.CreateHorizontalGroup(contentHolder, "Pee angle slider container", true, true);
             UIBuilder.CreateLabel(XSliderContainer, "Pee Angle height", "Pee Angle height");
@@ -280,6 +235,63 @@ namespace InfiniPee
             }
 
             CanvasGO?.SetActive(ShowUI);
+        }
+
+        private void SetUpOrToggleHandIK(bool state)
+        {
+            HandIK = state;
+            if (PlayerCharacter.Player is null)
+            {
+                return;
+            }
+            if (PlayerCharacter.Player.FinalIK is null)
+            {
+                return;
+            }
+            if (PlayerCharacter.Player.Intimacy is null)
+            {
+                return;
+            }
+
+            //ik doesnt work for penis
+            //lets check all delegte listeners on onpeeingstarted and onpee
+            //onpeeingstarted is only listened to by one method, onpeeingstarteddowork
+
+            //the hand posing is done from within CIntimacy.CheckPeeing......
+            //so we nuke it if we force pee and then run the IK ourselves
+
+            if (HandIK)
+            {
+                if (peeInteraction is null || masturbationTarget is null || !(masturbationTarget?.isActiveAndEnabled ?? true))
+                {
+                    if (PlayerCharacter.Player.Gender == Genders.Male)
+                    {
+                        peeInteraction = PlayerCharacter.Player.Intimacy.PeeingHandTarget.InteractionObject;
+                    }
+                    else
+                    {
+                        //something called "masturbationlHand"
+                        if (masturbationTarget is null)
+                        {
+                            masturbationTarget = PlayerCharacter.Player.transform.FindDeepChild("masturbationlHand").GetComponent<InteractionObject>();
+                            masturbationTarget.transform.localPosition = new(-0.03f, 0.05f, 0.165f);
+                            masturbationTarget.transform.localEulerAngles = new(40, 180, 0);
+                            masturbationTarget.transform.FindDeepChild("lThumb1").localEulerAngles = new Vector3(0, 0, 0);
+                        }
+
+                        if (masturbationTarget is not null)
+                        {
+                            masturbationTarget.gameObject.SetActive(true);
+                            peeInteraction = masturbationTarget;
+                        }
+                    }
+                }
+                PlayerCharacter.Player.FinalIK.StartObjectInteraction(peeInteraction, FullBodyBipedEffector.LeftHand, false);
+            }
+            else
+            {
+                PlayerCharacter.Player.FinalIK.StopObjectInteraction(FullBodyBipedEffector.LeftHand);
+            }
         }
 
         private void UpdatePeeAngle()
@@ -323,6 +335,7 @@ namespace InfiniPee
 
             PeeOrigin.localEulerAngles = new(PlayerGenderOffset + PeeAngle, PeeOrigin.localEulerAngles.y, PeeOrigin.localEulerAngles.z);
         }
+
         private void ToggleCursorPlayerLock()
         {
             if (PlayerCharacter.Player is null)
@@ -359,6 +372,11 @@ namespace InfiniPee
             if (sceneName == "GameMain")
             {
                 inGameMain = true;
+                Peeing = false;
+                HandIK = false;
+                LockCursor = false;
+                ShowUI = false;
+
                 Pee = PlayerCharacter.Player.Pee;
 
                 if (PlayerCharacter.Player.Gender == Genders.Male)
