@@ -35,6 +35,6 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-[assembly: MelonInfo(typeof(InfiniPee.InfiniPee), "InfiniPee", "1.0.0", "Lenny")]
+[assembly: MelonInfo(typeof(InfiniPee.InfiniPee), "InfiniPee", "1.0.1", "Lenny")]
 [assembly: MelonColor(255, 0, 200, 70)]
 [assembly: MelonGame("Eek", "House Party")]
