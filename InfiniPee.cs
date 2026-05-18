@@ -214,7 +214,7 @@ namespace InfiniPee
             UIBuilder.CreateLabel(XSliderContainer, "Pee Angle height", "Pee Angle height");
             UIBuilder.CreateSlider(XSliderContainer, "Angle", out Slider PeeAngleSlider);
             UIBuilder.SetLayoutElement(XSliderContainer, minWidth: 100);
-            PeeAngleSlider.onValueChanged.AddListener(new Action<float>((float val) =>
+            PeeAngleSlider.onValueChanged.AddListener(new Action<float>(val =>
             {
                 PeeAngle = 90 - val;
                 if (Pee is null)
@@ -235,6 +235,7 @@ namespace InfiniPee
             }
 
             CanvasGO?.SetActive(ShowUI);
+            GameObject.DontDestroyOnLoad(CanvasGO);
         }
 
         private void SetUpOrToggleHandIK(bool state)
@@ -273,7 +274,7 @@ namespace InfiniPee
                         //something called "masturbationlHand"
                         if (masturbationTarget is null)
                         {
-                            masturbationTarget = PlayerCharacter.Player.transform.FindDeepChild("masturbationlHand").GetComponent<InteractionObject>();
+                            masturbationTarget = PlayerCharacter.Player.transform.GetComponentsInChildren(Il2CppType.Of<InteractionObject>(), true).First(c => c.name == "masturbationlHand").Cast<InteractionObject>();
                             masturbationTarget.transform.localPosition = new(-0.03f, 0.05f, 0.165f);
                             masturbationTarget.transform.localEulerAngles = new(40, 180, 0);
                             masturbationTarget.transform.FindDeepChild("lThumb1").localEulerAngles = new Vector3(0, 0, 0);
@@ -286,7 +287,13 @@ namespace InfiniPee
                         }
                     }
                 }
-                PlayerCharacter.Player.FinalIK.StartObjectInteraction(peeInteraction, FullBodyBipedEffector.LeftHand, false);
+                if (peeInteraction is not null)
+                {
+                    //PlayerCharacter.Player.OnMasturbate();
+                    //PlayerCharacter.Player.OnMasturbate();
+                    peeInteraction.enabled = true;
+                    PlayerCharacter.Player.FinalIK.StartObjectInteraction(peeInteraction, FullBodyBipedEffector.LeftHand, true);
+                }
             }
             else
             {
@@ -296,9 +303,8 @@ namespace InfiniPee
 
         private void UpdatePeeAngle()
         {
-            if (Pee is null)
+            if (Pee is null || PeeOrigin is null)
             {
-
                 return;
             }
 
@@ -371,6 +377,8 @@ namespace InfiniPee
         {
             if (sceneName == "GameMain")
             {
+                peeInteraction = null;
+                masturbationTarget = null;
                 inGameMain = true;
                 Peeing = false;
                 HandIK = false;
@@ -389,11 +397,25 @@ namespace InfiniPee
                     PeeOrigin = Pee.transform;
                 }
 
-                BuildUI();
+                PlayerCharacter.OnPlayerLateStart += new Action(() =>
+                {
+                    if (CanvasGO is null)
+                    {
+                        BuildUI();
+                    }
+
+                    CanvasGO?.SetActive(ShowUI);
+                });
+                if (CanvasGO is null)
+                {
+                    BuildUI();
+                }
             }
-            else
+            else if (sceneName != "ForestEnvironment")
             {
+                ShowUI = false;
                 inGameMain = false;
+                CanvasGO?.SetActive(false);
             }
         }
     }
